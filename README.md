@@ -12,10 +12,46 @@ OpenAI client  ──HTTP──▶  /v1/chat/completions  ──RPC──▶  om
      └────────────── SSE text deltas ◀─────────────────────────┘
 ```
 
+## Download
+
+Prebuilt Windows builds are on the
+[releases page](https://github.com/soulknighthackedmond-alt/omnirush-studio/releases/latest):
+
+| File                               | Use                                                       |
+| ---------------------------------- | --------------------------------------------------------- |
+| `OmniRush-Studio-Setup-0.1.0.exe`  | NSIS installer — Start menu and desktop shortcut, uninstaller |
+| `OmniRush-Studio-0.1.0-portable.exe` | one file, runs in place, nothing installed              |
+
+Both are the same app; the portable one is useful on a machine you cannot
+install to. Windows builds are unsigned, so SmartScreen warns on first launch
+(**More info → Run anyway**).
+
+They still need the OmniRush CLI itself — see [Requirements](#requirements) and
+[Runners](#runners--how-the-cli-is-started) below. On Windows that means the CLI
+must be installed and signed in **inside WSL**.
+
 ## Requirements
 
-- Node.js 20+ (tested on 22.14)
+- Node.js 20+ (tested on 22.14) — only for running from source
 - The OmniRush CLI installed and signed in (`omnirush login`, `omnirush whoami`)
+
+## Build the installers
+
+```bash
+npm install
+npm run dist        # vite build + electron-builder -> release/
+```
+
+Output in `release/`: `OmniRush-Studio-Setup-<version>.exe` (NSIS) and
+`OmniRush-Studio-<version>-portable.exe`. The app icon is generated from
+`scripts/make-icon.py` (`python scripts/make-icon.py`) into `build/icon.ico` and
+`build/icon.png`.
+
+A packaged build cannot spawn the CLI through `process.execPath` — that is the
+Electron binary, not node — so `electron/runner.cjs` resolves a real node
+(`ELECTRON_RUN_AS_NODE` aware) before spawning. `test/check-packaged.cjs` runs
+inside the packaged binary and asserts that, plus the launch flags:
+`ELECTRON_RUN_AS_NODE=1 "release/win-unpacked/OmniRush Studio.exe" test/check-packaged.cjs "release/win-unpacked/resources/app.asar"`.
 
 ## Run it
 
