@@ -1,0 +1,86 @@
+{
+  "name": "omnirush-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Desktop GUI for the OmniRush CLI with a local OpenAI-compatible v1 API",
+  "author": "Alvin",
+  "license": "MIT",
+  "homepage": "https://github.com/soulknighthackedmond-alt/omnirush-studio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soulknighthackedmond-alt/omnirush-studio.git"
+  },
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "api": "node bin/serve.cjs",
+    "check": "node test/check-api.cjs && node test/check-rtk.cjs",
+    "typecheck": "tsc --noEmit",
+    "icon": "python scripts/make-icon.py",
+    "dist": "npm run build && electron-builder --win",
+    "dist:dir": "npm run build && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  },
+  "build": {
+    "appId": "ai.omnirush.studio",
+    "productName": "OmniRush Studio",
+    "copyright": "OmniRush Studio",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "bin/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OmniRush Studio",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "OmniRush-Studio-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "OmniRush-Studio-${version}-portable.${ext}"
+    }
+  }
+}
