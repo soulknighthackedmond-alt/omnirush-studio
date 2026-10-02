@@ -1,7 +1,7 @@
 {
   "name": "omnirush-studio",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Desktop GUI for the OmniRush CLI with a local OpenAI-compatible v1 API",
   "author": "Alvin",
   "license": "MIT",

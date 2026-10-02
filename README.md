@@ -19,8 +19,8 @@ Prebuilt Windows builds are on the
 
 | File                               | Use                                                       |
 | ---------------------------------- | --------------------------------------------------------- |
-| `OmniRush-Studio-Setup-0.1.0.exe`  | NSIS installer — Start menu and desktop shortcut, uninstaller |
-| `OmniRush-Studio-0.1.0-portable.exe` | one file, runs in place, nothing installed              |
+| `OmniRush-Studio-Setup-0.1.1.exe`  | NSIS installer — Start menu and desktop shortcut, uninstaller |
+| `OmniRush-Studio-0.1.1-portable.exe` | one file, runs in place, nothing installed              |
 
 Both are the same app; the portable one is useful on a machine you cannot
 install to. Windows builds are unsigned, so SmartScreen warns on first launch

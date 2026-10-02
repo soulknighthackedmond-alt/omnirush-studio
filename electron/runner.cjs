@@ -26,6 +26,11 @@ const IS_WINDOWS = process.platform === "win32";
 const DETECT_TTL_MS = 120000;
 let detectionCache = null;
 
+// Booting a stopped WSL2 VM takes far longer than a warm `command -v`, so the
+// probe gets a generous budget: too short a timeout looks exactly like "WSL is
+// broken" and drops the app onto the native runner, which the gateway refuses.
+const WSL_PROBE_TIMEOUT_MS = 45000;
+
 // A runner can look healthy and still die on a real run (a WSL distro that
 // boots for the probe and then loses its VM, for example). Failures are
 // remembered briefly so the next request prefers the other runner.
@@ -297,7 +302,7 @@ async function probeWsl(config) {
     'p=$(command -v omnirush); if [ -z "$p" ]; then echo __OMNIRUSH_MISSING__; ' +
     'elif [ "${p#/mnt/}" != "$p" ]; then echo __OMNIRUSH_WINDOWS__ "$p"; else echo "$p"; fi';
   args.push("-e", "bash", "-lc", probe);
-  const res = await runCapture("wsl.exe", args, 12000);
+  const res = await runCapture("wsl.exe", args, WSL_PROBE_TIMEOUT_MS);
   const out = res.stdout.trim();
   const err = res.stderr.trim();
   const noise = `${err}\n${out}`;
@@ -312,9 +317,15 @@ async function probeWsl(config) {
     };
   }
   if (!out) {
+    // An empty answer after the full budget is inconclusive, not a verdict:
+    // the distro may still be booting. Callers retry rather than cache it.
+    const timedOut = /timed out/i.test(err) || res.code === null;
     return {
       available: false,
-      detail: `wsl.exe returned no output (exit ${res.code ?? "null"}): ${(err || "no stderr").slice(0, 200)}`,
+      inconclusive: timedOut,
+      detail: timedOut
+        ? `WSL (${distro || "default"}) did not answer within ${Math.round(WSL_PROBE_TIMEOUT_MS / 1000)}s — the distro is probably still booting`
+        : `wsl.exe returned no output (exit ${res.code ?? "null"}): ${(err || "no stderr").slice(0, 200)}`,
     };
   }
   if (!res.ok && !out.includes("__OMNIRUSH_MISSING__")) {
@@ -376,18 +387,27 @@ async function detect(config, options = {}) {
     mode: "wsl",
     label: "Windows Subsystem for Linux",
     available: wslProbe.available,
+    inconclusive: !!wslProbe.inconclusive,
     detail: wslProbe.detail,
     launch: wslLaunch,
   });
 
-  detectionCache = { key: cacheKey, at: now, results };
+  // Only a definite answer is worth caching; an inconclusive probe must be
+  // re-tried, or one slow boot would pin the app to the wrong runner.
+  detectionCache = wslProbe.inconclusive ? null : { key: cacheKey, at: now, results };
   return results;
 }
 
 /** Resolve the runner the app should actually use, honouring an explicit choice. */
 async function resolveRunner(config) {
-  const results = await detect(config);
-  const byMode = Object.fromEntries(results.map((r) => [r.mode, r]));
+  let results = await detect(config);
+  let byMode = Object.fromEntries(results.map((r) => [r.mode, r]));
+  // A timed-out probe says nothing about WSL — the distro may just be booting.
+  // Give it one more go before falling back to the runner the gateway refuses.
+  if (byMode.wsl?.inconclusive) {
+    results = await detect(config, { force: true });
+    byMode = Object.fromEntries(results.map((r) => [r.mode, r]));
+  }
   const wanted = (config.runner || "auto").trim();
   if (wanted !== "auto" && byMode[wanted]) {
     const chosen = byMode[wanted];
